@@ -1,28 +1,46 @@
 package com.testandocrud.cadastro_usuario.business;
 
+import com.testandocrud.cadastro_usuario.business.dto.UsuarioDto;
+import com.testandocrud.cadastro_usuario.business.mapper.UsuarioMapper;
 import com.testandocrud.cadastro_usuario.infraestrutura.entitys.Usuario;
 import com.testandocrud.cadastro_usuario.infraestrutura.repository.UsuarioRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
+@RequiredArgsConstructor
 public class UsuarioService {
     private final UsuarioRepository repository;
-    public UsuarioService(UsuarioRepository repository) {
-        this.repository = repository;
+    private final UsuarioMapper mapper;
+
+    public UsuarioDto salvarUsuario(UsuarioDto dto) {
+        Usuario usuario = repository.save(mapper.toEntity(dto));
+        return mapper.toDto(usuario);
     }
-    //Primeiro metodo: salvar
-    public void salvarUsuario(Usuario usuario) {
-        repository.saveAndFlush(usuario); //salva e fecha a conexão com o BD
+
+    //TODO - descobrir outros modos de listar paginado
+    public Page<UsuarioDto> listarTodos(Pageable pageable) {
+        Page<Usuario> usuarios = repository.findAll(pageable);
+        List<UsuarioDto> dtos = mapper.toDtoList(usuarios.getContent());
+        return new PageImpl<>(dtos, pageable, usuarios.getTotalElements());
+//        return repository.findAll(pageable).map(mapper::toDto);
     }
-    //Segundo metodo: Buscar
-    public Usuario buscarUsuarioPorEmail(String email){
-        return repository.findByEmail(email).orElseThrow(
+
+    public UsuarioDto buscarUsuarioPorEmail(String email){
+        return mapper.toDto(repository.findByEmail(email).orElseThrow(
                 () -> new RuntimeException("Email não encontrado!")
-        );
+        ));
     }
+
     public void deletarUsuarioPorEmail(String email){
         repository.deleteByEmail(email);
     }
+
     public void atualizarUsuarioPorId(Integer id, Usuario usuario) {
         Usuario usuarioEntity = repository.findById(id).orElseThrow(() ->
                 new RuntimeException("Usuario não encontrado"));
